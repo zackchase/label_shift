@@ -25,7 +25,7 @@ from utils4gluon import *
 
 
 
-deltalist = [0.5, 0.0] #[0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+deltalist = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
 powerlist = []
 powerlist_oracle = []
 cdflist = []
@@ -235,5 +235,5 @@ for delta in deltalist:
 
 results = [deltalist, powerlist, powerlist_oracle, cdflist, cdflist_oracle, powerlist_x, cdflist_x]
 
-pickle.dump( results, open( "results_exp_mnist_ttest.p", "wb" ) )
+pickle.dump( results, open( "results_exp_mnist_full.p", "wb" ) )
 
