@@ -52,7 +52,7 @@ def weighted_train(net, lossfunc, trainer, Xtrain, ytrain, Xval, yval, ctx, dfea
             if weightfunc is None:
                 wt_batch = nd.ones_like(label) # output an ndarray of importance weight
             else:
-                wt_batch = weightfunc(data,label)
+                wt_batch = weightfunc(data,label).reshape((-1,))
 
             with autograd.record():
                 output = net(data)
