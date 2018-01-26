@@ -20,15 +20,18 @@ def correction_experiment(dataset_name=None,
                      num_val_samples=None,
                      num_test_samples=None,
                      num_hidden=None, 
-                     epochs=None):
+                     epochs=None,
+                     batch_size=None):
 
-    # set the context
+    # set the context for compute
     ctx = mx.gpu()
+    
+    # set the context for data
+    data_ctx = mx.gpu()
 
     # load the dataset
     X, y, Xtest, ytest = load_data(dataset_name)
 
-    batch_size = 64
     n = X.shape[0]
     dfeat = np.prod(X.shape[1:])
 
@@ -52,14 +55,12 @@ def correction_experiment(dataset_name=None,
     Xval_source = X[(n//num):(2*n//num),:,:,:]
     yval_source = y[(n//num):(2*n//num):]
 
-
     ################################################
     #  Set the label distribution at train time
     ################################################
     if tweak_train:
-        print("Sampling training and validation data from p_P")
-        print("Current p_P: ", p_P)
-
+#         print("Sampling training and validation data from p_P")
+#         print("Current p_P: ", p_P)
         Xtrain, ytrain = tweak_dist(Xtrain_source, ytrain_source, num_labels, num_train_samples, p_P)
         Xval, yval = tweak_dist(Xval_source, yval_source, num_labels, num_val_samples, p_P)
     else:
@@ -70,15 +71,14 @@ def correction_experiment(dataset_name=None,
     #  Set the label distribution for test data
     ################################################
     if tweak_test:
-        print("Sampling test data from p_Q")
-        print("Current p_Q: ", p_Q)
+#         print("Sampling test data from p_Q")
+#         print("Current p_Q: ", p_Q)
         Xtest, ytest = tweak_dist(Xtest, ytest, num_labels, num_test_samples, p_Q)
-      
-    
+          
     ####################################
     # Train on p_P
     ####################################
-    net = gluon.nn.Sequential()
+    net = gluon.nn.HybridSequential()
     with net.name_scope():
         net.add(gluon.nn.Dense(num_hidden, activation="relu"))
         net.add(gluon.nn.Dense(num_hidden, activation="relu"))
@@ -87,9 +87,10 @@ def correction_experiment(dataset_name=None,
     net.collect_params().initialize(mx.init.Xavier(magnitude=2.24), ctx=ctx)
     softmax_cross_entropy = gluon.loss.SoftmaxCrossEntropyLoss()
     trainer = gluon.Trainer(net.collect_params(), 'sgd', {'learning_rate': .1})
-
+    net.hybridize()
+    
     # Training
-    weighted_train(net, softmax_cross_entropy, trainer, Xtrain, ytrain, Xval, yval, ctx, dfeat, epoch=epochs, weightfunc=None)
+    weighted_train(net, softmax_cross_entropy, trainer, Xtrain, ytrain, Xval, yval, ctx, dfeat, epoch=epochs, weightfunc=None, data_ctx=data_ctx)
 
 
     # Prediction
@@ -117,8 +118,8 @@ def correction_experiment(dataset_name=None,
     print(np.concatenate((wt,wt_true),axis=1))
     print(np.concatenate((Py_est,Py_true),axis=1))
 
-    print("||wt - wt_true||^2  = " + repr(np.sum((wt-wt_true)**2)/np.linalg.norm(wt_true)**2))
-    print("KL(Py_est|| Py_true) = " + repr(stats.entropy(Py_est,Py_base)))
+#     print("||wt - wt_true||^2  = " + repr(np.sum((wt-wt_true)**2)/np.linalg.norm(wt_true)**2))
+#     print("KL(Py_est|| Py_true) = " + repr(stats.entropy(Py_est,Py_base)))
     
     
     ####################################
@@ -138,7 +139,7 @@ def correction_experiment(dataset_name=None,
     weightfunc = lambda x,y: wt_ndarray[y.asnumpy().astype(int)]
 
     # Train a model using the following!
-    net2 = gluon.nn.Sequential()
+    net2 = gluon.nn.HybridSequential()
     with net2.name_scope():
         net2.add(gluon.nn.Dense(num_hidden, activation="relu"))
         net2.add(gluon.nn.Dense(num_hidden, activation="relu"))
@@ -146,11 +147,13 @@ def correction_experiment(dataset_name=None,
 
     net2.collect_params().initialize(mx.init.Xavier(magnitude=2.24), ctx=ctx)
     trainer2 = gluon.Trainer(net2.collect_params(), 'sgd', {'learning_rate': .1})
-    epochs2 = 5
-
+    net.hybridize()
+    
+    # NOTE WE ASSUME SAME NUMBER OF EPOCHS IN PERIOD 1 and PERIOD 2
+    
     # Training
     weighted_train(net2, softmax_cross_entropy, trainer2, Xtrain, ytrain, 
-                   Xval, yval, ctx, dfeat, epoch=epochs2, weightfunc=weightfunc)
+                   Xval, yval, ctx, dfeat, epoch=epochs, weightfunc=weightfunc, data_ctx=data_ctx)
 
     data_test.reset()
     acc_weighted = evaluate_accuracy(data_test, net2, ctx, dfeat)
