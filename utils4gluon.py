@@ -4,17 +4,34 @@ from mxnet import nd, autograd
 
 #------------------- utility functions -----------------
 
+##################################################
+#
+##################################################
+# def evaluate_accuracy(data_iterator, net, ctx, dfeat):
+#     acc = mx.metric.Accuracy()
+#     for i, batch in enumerate(data_iterator):
+#         data = batch.data[0].as_in_context(ctx).reshape((-1, dfeat))
+#         label = batch.label[0].as_in_context(ctx)
+#         output = net(data)
+#         predictions = nd.argmax(output, axis=1)
+#         acc.update(preds=predictions, labels=label)
+#     return acc.get()[1]
+
+
 def evaluate_accuracy(data_iterator, net, ctx, dfeat):
-    acc = mx.metric.Accuracy()
+    data_iterator.reset()
+    numerator = 0.
+    denominator = 0.
     for i, batch in enumerate(data_iterator):
         data = batch.data[0].as_in_context(ctx).reshape((-1, dfeat))
         label = batch.label[0].as_in_context(ctx)
         output = net(data)
         predictions = nd.argmax(output, axis=1)
-        acc.update(preds=predictions, labels=label)
-    return acc.get()[1]
+        numerator += nd.sum(predictions == label)
+        denominator += data.shape[0]
+    return (numerator / denominator).asscalar()
 
-def weighted_train(net, lossfunc, trainer, Xtrain, ytrain, Xval, yval, ctx, dfeat, epoch=1, batch_size=64,weightfunc=None):
+def weighted_train(net, lossfunc, trainer, Xtrain, ytrain, Xval, yval, ctx, dfeat, epoch=1, batch_size=64,weightfunc=None, data_ctx=mx.cpu()):
     '''
 
     :param net:             Forward pass model with NDarray parameters attached.
@@ -33,9 +50,9 @@ def weighted_train(net, lossfunc, trainer, Xtrain, ytrain, Xval, yval, ctx, dfea
 
     '''
     # declare data iterators
-    train_data = mx.io.NDArrayIter(Xtrain, ytrain, batch_size, shuffle=True)
-    val_data = mx.io.NDArrayIter(Xval, yval, batch_size, shuffle=False)
-
+    train_data = mx.io.NDArrayIter(nd.array(Xtrain, ctx=data_ctx), nd.array(ytrain, ctx=data_ctx), batch_size, shuffle=True)
+    val_data = mx.io.NDArrayIter(nd.array(Xval, ctx=data_ctx), nd.array(yval, ctx=data_ctx), batch_size, shuffle=False)
+    
     smoothing_constant = .01
     moving_loss = 0
 
@@ -49,6 +66,7 @@ def weighted_train(net, lossfunc, trainer, Xtrain, ytrain, Xval, yval, ctx, dfea
         for i, batch in enumerate(train_data):
             data = batch.data[0].as_in_context(ctx).reshape((-1, dfeat))
             label = batch.label[0].as_in_context(ctx)
+
             if weightfunc is None:
                 wt_batch = nd.ones_like(label) # output an ndarray of importance weight
             else:
