@@ -101,7 +101,8 @@ def correction_experiment(dataset_name=None,
     # Converting to numpy array for later convenience
     ypred_s= ypred_s.asnumpy()
     ypred_s_soft = ypred_s_soft.asnumpy()
-    ypred_t=ypred_t.asnumpy()
+    ypred_t = ypred_t.asnumpy()
+    ypred_t_soft = ypred_t_soft.asnumpy()
     
     ####################################
     # Estimate Wt and Py
@@ -110,8 +111,8 @@ def correction_experiment(dataset_name=None,
 
     Py_est = estimate_target_dist(wt, yval,num_labels)
 
-    Py_true =calculate_marginal(ytest,num_labels)
-    Py_base =calculate_marginal(yval,num_labels)
+    Py_true = calculate_marginal(ytest,num_labels)
+    Py_base = calculate_marginal(yval,num_labels)
 
     wt_true = Py_true/Py_base
 
@@ -165,7 +166,12 @@ def correction_experiment(dataset_name=None,
             "wt": wt, 
             "wt_true": wt_true, 
             "wt_l2": np.sum((wt-wt_true)**2)/np.linalg.norm(wt_true)**2, 
-            "kl_div": stats.entropy(Py_est,Py_base)}
+            "kl_div": stats.entropy(Py_est,Py_base),
+            "ypred_s": ypred_s,
+            "ypred_s_soft": ypred_s_soft,
+            "ypred_t:": ypred_t,
+            "ypred_t_soft": ypred_t_soft,
+            }
 
     
     
