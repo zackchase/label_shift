@@ -1,0 +1,9 @@
+This package contains MATLAB functions to tackle the problem of domain adaptation under (generalized) target shift, including
+
+- betaKMM_targetshift: Quadratic programming to estimate the weights beta which are used for correction for target shift;
+
+- betaEM_targetshift: EM to find to find the change in the prior distribution of Y for classification proposed by Chan & Ng (2005). Netlab toolbox (http://www1.aston.ac.uk/eas/research/groups/ncrg/resources/netlab/)  is needed to run this function.
+
+- beta_KMM_LS_GeTarS: Alternate optimization procedure to estimate the weights beta and transformed training data which are used to correct for location-scale generalized target shift.
+
+Note that the GPML toolbox is required, which is included in this package.  Use "help function_name" to see how to use them.
