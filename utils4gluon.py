@@ -31,7 +31,8 @@ def evaluate_accuracy(data_iterator, net, ctx, dfeat):
         denominator += data.shape[0]
     return (numerator / denominator).asscalar()
 
-def weighted_train(net, lossfunc, trainer, Xtrain, ytrain, Xval, yval, ctx, dfeat, epoch=1, batch_size=64,weightfunc=None, data_ctx=mx.cpu()):
+def weighted_train(net, lossfunc, trainer, Xtrain, ytrain, Xval, yval, ctx, dfeat, epoch=1, batch_size=64,
+                   weightfunc=None, weightvec=None, data_ctx=mx.cpu()):
     '''
 
     :param net:             Forward pass model with NDarray parameters attached.
@@ -44,13 +45,20 @@ def weighted_train(net, lossfunc, trainer, Xtrain, ytrain, Xval, yval, ctx, dfea
     :param epoch:           The number of data passes to run in training
     :param weightfunc:      An optional lambda function that takes in a vector of X and y
                             and outputs a vector of weights to assign to those examples.
+    :param weightvec:       A weight vector in numpy array that has the same number of rows as ytrain.
+                            * Note that this is only active if weightfunc is none.
     :return:
 
     The function does not return anything. Trained parameters will remain in net.
 
     '''
     # declare data iterators
-    train_data = mx.io.NDArrayIter(nd.array(Xtrain, ctx=data_ctx), nd.array(ytrain, ctx=data_ctx), batch_size, shuffle=True)
+    if weightvec is not None:
+        assert(Xtrain.shape[0] == len(weightvec)), "weightvec dimension does not match that of Xtrain!"
+        mx.io.NDArrayIter([nd.array(Xtrain, ctx=data_ctx), nd.array(weightvec, ctx=data_ctx)],
+                          nd.array(ytrain, ctx=data_ctx), batch_size, shuffle=True)
+    else:
+        train_data = mx.io.NDArrayIter(nd.array(Xtrain, ctx=data_ctx), nd.array(ytrain, ctx=data_ctx), batch_size, shuffle=True)
     val_data = mx.io.NDArrayIter(nd.array(Xval, ctx=data_ctx), nd.array(yval, ctx=data_ctx), batch_size, shuffle=False)
     
     smoothing_constant = .01
@@ -67,10 +75,13 @@ def weighted_train(net, lossfunc, trainer, Xtrain, ytrain, Xval, yval, ctx, dfea
             data = batch.data[0].as_in_context(ctx).reshape((-1, dfeat))
             label = batch.label[0].as_in_context(ctx)
 
-            if weightfunc is None:
-                wt_batch = nd.ones_like(label) # output an ndarray of importance weight
+            if weightfunc is not None:
+                wt_batch = weightfunc(data, label).reshape((-1,))
+            elif weightvec is not None:
+                wt_batch = batch.data[1].as_in_context(ctx).reshape((-1,))
             else:
-                wt_batch = weightfunc(data,label).reshape((-1,))
+                wt_batch = nd.ones_like(label) # output an ndarray of importance weight
+
 
             with autograd.record():
                 output = net(data)

@@ -47,7 +47,7 @@ y = dataset["train_label"]
 n = X.shape[0]
 
 # the amount to perturb in one calss
-delta = 0
+delta = 0.98
 ko_class = 5
 
 idx = (y==ko_class).nonzero()
@@ -117,6 +117,30 @@ ypred_t=ypred_t.asnumpy()
 #
 # ------------------ Applications -----------------
 #
+#----------------------------------------------------------------------------
+# Example code for estimating Wt and Py
+#----------------------------------------------------------------------------
+
+
+wt = estimate_labelshift_ratio(yval, ypred_s, ypred_t,num_outputs)
+
+Py_est = estimate_target_dist(wt, yval,num_outputs)
+
+Py_true =calculate_marginal(ytest,num_outputs)
+Py_base =calculate_marginal(yval,num_outputs)
+
+print(Py_true)
+
+print(Py_base)
+
+wt_true = Py_true/Py_base
+
+print(np.concatenate((wt,wt_true),axis=1))
+print(np.concatenate((Py_est,Py_true),axis=1))
+
+print("||wt - wt_true||^2  = " + repr(np.sum((wt-wt_true)**2)/np.linalg.norm(wt_true)**2))
+
+print("KL(Py_est|| Py_true) = " + repr(stats.entropy(Py_est,Py_base)))
 
 
 
@@ -176,26 +200,6 @@ fig.savefig("AD-test"+"delta="+repr(delta)+".pdf", bbox_inches='tight')
 # res2 = stats.probplot(pvlist_gnd, dist=uniformdist, plot=ax2)
 
 
-#----------------------------------------------------------------------------
-# Example code for estimating Wt and Py
-#----------------------------------------------------------------------------
-
-
-wt = estimate_labelshift_ratio(yval, ypred_s, ypred_t,num_outputs)
-
-Py_est = estimate_target_dist(wt, yval,num_outputs)
-
-Py_true =calculate_marginal(ytest,num_outputs)
-Py_base =calculate_marginal(yval,num_outputs)
-
-wt_true = Py_true/Py_base
-
-print(np.concatenate((wt,wt_true),axis=1))
-print(np.concatenate((Py_est,Py_true),axis=1))
-
-print("||wt - wt_true||^2  = " + repr(np.sum((wt-wt_true)**2)/np.linalg.norm(wt_true)**2))
-
-print("KL(Py_est|| Py_true) = " + repr(stats.entropy(Py_est,Py_base)))
 
 
 

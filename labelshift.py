@@ -52,6 +52,21 @@ def estimate_target_dist(wt, ytrue_s,k):
     mu_t = calculate_marginal(ytrue_s,k)
     return wt*mu_t
 
+# functions that convert beta to w and converge w to a corresponding weight function.
+def beta_to_w(beta, y, k):
+    w = []
+    for i in range(k):
+        w.append(np.mean(beta[y == i]))
+    w = np.array(w)
+    return w
+
+# a function that converts w to beta.
+def w_to_beta(w,y):
+    return w[y.astype(int)]
+
+def w_to_weightfunc(w):
+    return lambda x, y: w[y.astype(int)]
+
 
 
 #----------------------------------------------------------------------------

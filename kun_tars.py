@@ -61,15 +61,3 @@ def py_betaEM_targetshift(X, Y, Xtst):
     mXtst = matlab.double(Xtst.tolist())
     mbeta = eng.betaEM_targetshift(mX, mY, mXtst, [])
     return np.array(mbeta._data).reshape(mbeta.size, order='F')
-
-
-# functions that convert beta to w and converge w to a corresponding weight function.
-def beta_to_w(beta, y,k):
-    w=[]
-    for i in range(k):
-        w.append(beta[(idx for idx,v in enumerate(y) if v == i).next()])
-    w = np.array(w)
-    return w
-
-def w_to_weightfunc(w):
-    return lambda x,y: w[y.astype(int)]
