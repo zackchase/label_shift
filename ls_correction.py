@@ -184,7 +184,8 @@ def correction_experiment_benchmark(methods, dataset_name=None,
                           num_test_samples=None,
                           num_hidden=None,
                           epochs=None,
-                          batch_size=None):
+                          batch_size=None,
+                          ctx=None):
     # "methods" are a list of lambda functions that take X, y, X_test (and optionally a blackbox predictor f)
     # as inputs and output a "weightvec"
     # For example:
@@ -198,10 +199,11 @@ def correction_experiment_benchmark(methods, dataset_name=None,
 
 
     # set the context for compute
-    ctx = mx.gpu()
+    if ctx is None:
+        ctx = mx.cpu()
 
     # set the context for data
-    data_ctx = mx.gpu()
+    data_ctx = ctx
 
     # load the dataset
     X, y, Xtest, ytest = load_data(dataset_name)
@@ -234,6 +236,10 @@ def correction_experiment_benchmark(methods, dataset_name=None,
         #         print("Current p_Q: ", p_Q)
         Xtest, ytest = tweak_dist(Xtest, ytest, num_labels, num_test_samples, p_Q)
 
+    # make sure that the feature is reshaped into a data matrix
+    Xtrain = Xtrain.reshape((-1, dfeat))
+    Xtest = Xtest.reshape((-1,dfeat))
+
     weightvecs = []
     for func in methods:
         beta = func(Xtrain, ytrain, Xtest)
@@ -246,7 +252,7 @@ def correction_experiment_benchmark(methods, dataset_name=None,
     wt_list = []
     Py_est_list = []
     for beta in weightvecs:
-        wt=beta_to_w(beta, y, num_labels)
+        wt = beta_to_w(beta, ytrain, num_labels)
         wt_list.append(wt)
         Py_est = estimate_target_dist(wt, ytrain, num_labels)
         Py_est_list.append(Py_est)
@@ -285,10 +291,10 @@ def correction_experiment_benchmark(methods, dataset_name=None,
         acc_weighted = evaluate_accuracy(data_test, net2, ctx, dfeat)
 
         ypred_t, ypred_t_soft = predict_all(Xtest, net2, ctx, dfeat)
-        C = confusion_matrix(ytest, ypred_t, num_labels)
-        Cp = confusion_matrix_probabilistic(ytest, ypred_t_soft, num_labels)
+        C = confusion_matrix(ytest, ypred_t.asnumpy(), num_labels)
+        Cp = confusion_matrix_probabilistic(ytest, ypred_t_soft.asnumpy(), num_labels)
 
-        acc_list.append([acc_weighted],C,Cp)
+        acc_list.append([acc_weighted,C,Cp])
 
     return {"acc_list": acc_list, "wt_list": wt_list}
 
@@ -314,9 +320,9 @@ def BBSE(X,y,Xtest,ctx=mx.cpu(),num_hidden=256,epochs=5):
     #  First split examples between train and validation
     ################################################
     num = 2
-    Xtrain = XX[:(n//num),:,:,:]
+    Xtrain = XX[:(n//num),...]
     ytrain = yy[:(n//num)]
-    Xval = XX[(n//num):(2*n//num),:,:,:]
+    Xval = XX[(n//num):(2*n//num),...]
     yval = yy[(n//num):(2*n//num):]
 
     ####################################

@@ -27,7 +27,10 @@ def py_betaKMM_targetshift(X, Y, Xtst, sigma='median', lambda_beta=0.1):
     # sigma             ------    kernel bandwidth
     # width_L_beta      ------    kernel bandwidth for Y  (only needed for continuous Y)
     # lambda_beta       ------    regularization parameter for Y (only needed for continuous Y)
+    # We need to make sure that Y is a column vector.
     # Other inputs are optional
+
+    # shall we do dimension reduction on X to make it more tractable?
 
     median_samples = 1000
     if sigma == 'median':
@@ -41,11 +44,11 @@ def py_betaKMM_targetshift(X, Y, Xtst, sigma='median', lambda_beta=0.1):
         sigma = np.sqrt(kernel_width / 2)
         # sigma = median / sqrt(2); works better, sometimes at least
         del Z, D2, upper
-
+    y = Y.reshape((Y.size,1))
     sigma = float(sigma)
-    mX = matlab.double(X.tolist())
-    mY = matlab.double(Y.tolist())
-    mXtst = matlab.double(Xtst.tolist())
+    mX = matlab.double(X)
+    mY = matlab.double(y)
+    mXtst = matlab.double(Xtst)
     if sigma is None:
         mbeta = eng.betaKMM_targetshift(mX, mY, mXtst, [], 0, lambda_beta)
         return np.array(mbeta._data).reshape(mbeta.size, order='F')
@@ -55,9 +58,14 @@ def py_betaKMM_targetshift(X, Y, Xtst, sigma='median', lambda_beta=0.1):
         return np.array(mbeta._data).reshape(mbeta.size, order='F')
 
 
+
+#  Note that the following method is only implemented for K=2. Namely, y=0 or y=1...
+
 def py_betaEM_targetshift(X, Y, Xtst):
-    mX = matlab.double(X.tolist())
-    mY = matlab.double(Y.tolist())
-    mXtst = matlab.double(Xtst.tolist())
+    # shall we do dimension reduction on X to make it more tractable?
+    y = Y.reshape((Y.size, 1))
+    mX = matlab.double(X)
+    mY = matlab.double(y)
+    mXtst = matlab.double(Xtst)
     mbeta = eng.betaEM_targetshift(mX, mY, mXtst, [])
     return np.array(mbeta._data).reshape(mbeta.size, order='F')

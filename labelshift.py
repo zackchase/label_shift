@@ -56,7 +56,7 @@ def estimate_target_dist(wt, ytrue_s,k):
 def beta_to_w(beta, y, k):
     w = []
     for i in range(k):
-        w.append(np.mean(beta[y == i]))
+        w.append(np.mean(beta[y.astype(int) == i]))
     w = np.array(w)
     return w
 

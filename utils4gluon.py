@@ -55,7 +55,7 @@ def weighted_train(net, lossfunc, trainer, Xtrain, ytrain, Xval, yval, ctx, dfea
     # declare data iterators
     if weightvec is not None:
         assert(Xtrain.shape[0] == len(weightvec)), "weightvec dimension does not match that of Xtrain!"
-        mx.io.NDArrayIter([nd.array(Xtrain, ctx=data_ctx), nd.array(weightvec, ctx=data_ctx)],
+        train_data = mx.io.NDArrayIter([nd.array(Xtrain, ctx=data_ctx), nd.array(weightvec, ctx=data_ctx)],
                           nd.array(ytrain, ctx=data_ctx), batch_size, shuffle=True)
     else:
         train_data = mx.io.NDArrayIter(nd.array(Xtrain, ctx=data_ctx), nd.array(ytrain, ctx=data_ctx), batch_size, shuffle=True)
