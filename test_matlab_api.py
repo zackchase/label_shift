@@ -40,7 +40,7 @@ X_test += np.sqrt(d) * ytest
 
 
 
-beta1 = py_betaKMM_targetshift(X, y, X_test, sigma='median', lambda_beta=0.1)
+beta1 = py_betaKMM_targetshift(X, y, X_test, sigma=[], lambda_beta=0.1)
 
 beta2 = py_betaEM_targetshift(X, y, X_test)
 

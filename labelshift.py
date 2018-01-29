@@ -37,8 +37,8 @@ def estimate_labelshift_ratio(ytrue_s, ypred_s, ypred_t,k):
     else:
         C = confusion_matrix(ytrue_s, ypred_s,k)
     mu_t = calculate_marginal(ypred_t,k)
-
-    wt = np.linalg.solve(C,mu_t)
+    lamb = (1/min(len(ypred_s),len(ypred_t)))
+    wt = np.linalg.solve(np.dot(C.T, C)+lamb*np.eye(k), np.dot(C.T, mu_t))
     return wt
 
 def estimate_target_dist(wt, ytrue_s,k):

@@ -24,7 +24,8 @@ eng.add_path(nargout=0)  # call the matlab script that adds path
 
 
 def py_betaKMM_targetshift(X, Y, Xtst, sigma='median', lambda_beta=0.1):
-    # sigma             ------    kernel bandwidth
+    # sigma             ------    kernel bandwidth, can be set to 'median' to use the median trick,
+    #                             or set to None so as to use the default in Kun's code
     # width_L_beta      ------    kernel bandwidth for Y  (only needed for continuous Y)
     # lambda_beta       ------    regularization parameter for Y (only needed for continuous Y)
     # We need to make sure that Y is a column vector.
@@ -45,16 +46,16 @@ def py_betaKMM_targetshift(X, Y, Xtst, sigma='median', lambda_beta=0.1):
         # sigma = median / sqrt(2); works better, sometimes at least
         del Z, D2, upper
     y = Y.reshape((Y.size,1))
-    sigma = float(sigma)
     mX = matlab.double(X)
     mY = matlab.double(y)
     mXtst = matlab.double(Xtst)
     if sigma is None:
-        mbeta = eng.betaKMM_targetshift(mX, mY, mXtst, [], 0, lambda_beta)
+        mbeta = eng.betaKMM_targetshift(mX, mY, mXtst, [],[], 0, lambda_beta)
         return np.array(mbeta._data).reshape(mbeta.size, order='F')
     else:
+        sigma = float(sigma)
         width_L_beta = 3 * sigma
-        mbeta = eng.betaKMM_targetshift(mX, mY, mXtst, sigma, width_L_beta, lambda_beta)
+        mbeta = eng.betaKMM_targetshift(mX, mY, mXtst, [],sigma, width_L_beta, lambda_beta)
         return np.array(mbeta._data).reshape(mbeta.size, order='F')
 
 
