@@ -32,7 +32,7 @@ results_dict = {}
 
 
 TWEAK_ONE = True # Modify only one class, rather than using dirichlet
-MODIFY_P = False # if set to false, we use uniform P and modify Q.
+MODIFY_P = True # if set to false, we use uniform P and modify Q.
 # The following is useful only when TWEAK_ONE = True.
 KNOCK_OUT = True # If True reduce probability of one class, if False increase probability of one class,
 

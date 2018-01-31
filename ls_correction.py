@@ -185,7 +185,7 @@ def correction_experiment_benchmark(methods, dataset_name=None,
                           num_hidden=None,
                           epochs=None,
                           batch_size=None,
-                          ctx=None):
+                          ctx=None,cnn_flag=False):
     # "methods" are a list of lambda functions that take X, y, X_test (and optionally a blackbox predictor f)
     # as inputs and output a "weightvec"
     # For example:
@@ -237,8 +237,8 @@ def correction_experiment_benchmark(methods, dataset_name=None,
         Xtest, ytest = tweak_dist(Xtest, ytest, num_labels, num_test_samples, p_Q)
 
     # make sure that the feature is reshaped into a data matrix
-    Xtrain = Xtrain.reshape((-1, dfeat))
-    Xtest = Xtest.reshape((-1,dfeat))
+    #Xtrain = Xtrain.reshape((-1, dfeat))
+    #Xtest = Xtest.reshape((-1,dfeat))
 
     weightvecs = []
     for func in methods:
@@ -270,10 +270,21 @@ def correction_experiment_benchmark(methods, dataset_name=None,
         training_weights = np.maximum(beta, 0)
 
         net2 = gluon.nn.HybridSequential()
-        with net2.name_scope():
-            net2.add(gluon.nn.Dense(num_hidden, activation="relu"))
-            net2.add(gluon.nn.Dense(num_hidden, activation="relu"))
-            net2.add(gluon.nn.Dense(num_labels))
+        if cnn_flag:
+            with net2.name_scope():
+                net2.add(gluon.nn.Conv2D(channels=20, kernel_size=5, activation='relu'))
+                net2.add(gluon.nn.MaxPool2D(pool_size=2, strides=2))
+                net2.add(gluon.nn.Conv2D(channels=50, kernel_size=5, activation='relu'))
+                net2.add(gluon.nn.MaxPool2D(pool_size=2, strides=2))
+                # The Flatten layer collapses all axis, except the first one, into one axis.
+                net2.add(gluon.nn.Flatten())
+                net2.add(gluon.nn.Dense(num_hidden, activation="relu"))
+                net2.add(gluon.nn.Dense(num_labels))
+        else:
+            with net2.name_scope():
+                net2.add(gluon.nn.Dense(num_hidden, activation="relu"))
+                net2.add(gluon.nn.Dense(num_hidden, activation="relu"))
+                net2.add(gluon.nn.Dense(num_labels))
 
         net2.collect_params().initialize(mx.init.Xavier(magnitude=2.24), ctx=ctx, force_reinit=True)
         trainer2 = gluon.Trainer(net2.collect_params(), 'sgd', {'learning_rate': .1})
@@ -283,23 +294,28 @@ def correction_experiment_benchmark(methods, dataset_name=None,
 
         # Training
         weighted_train(net2, softmax_cross_entropy, trainer2, Xtrain, ytrain,
-                       Xtest, ytest, ctx, dfeat, epoch=epochs, weightvec=training_weights, data_ctx=data_ctx)
+                       Xtest, ytest, ctx, dfeat, epoch=epochs, weightvec=training_weights,
+                       data_ctx=data_ctx, cnn_flag=cnn_flag)
         # while Xtest and ytest are passed into that, they are not used for training
 
         data_test = mx.io.NDArrayIter(Xtest, ytest, batch_size, shuffle=False)
         data_test.reset()
-        acc_weighted = evaluate_accuracy(data_test, net2, ctx, dfeat)
+        acc_weighted = evaluate_accuracy(data_test, net2, ctx, dfeat, cnn_flag=cnn_flag)
 
-        ypred_t, ypred_t_soft = predict_all(Xtest, net2, ctx, dfeat)
+
+        ypred_t, ypred_t_soft = predict_all(Xtest, net2, ctx, dfeat, cnn_flag=cnn_flag)
         C = confusion_matrix(ytest, ypred_t.asnumpy(), num_labels)
         Cp = confusion_matrix_probabilistic(ytest, ypred_t_soft.asnumpy(), num_labels)
 
         acc_list.append([acc_weighted,C,Cp])
 
+    for item in acc_list:
+        print("Accuracy weighted = ", item[0])
+
     return {"acc_list": acc_list, "wt_list": wt_list}
 
 
-def BBSE(X,y,Xtest,ctx=mx.cpu(),num_hidden=256,epochs=5):
+def BBSE(X,y,Xtest,ctx=mx.cpu(),num_hidden=256,epochs=5,useProb=False,cnn_flag=False):
     # set the context for data
     data_ctx = ctx
 
@@ -329,11 +345,21 @@ def BBSE(X,y,Xtest,ctx=mx.cpu(),num_hidden=256,epochs=5):
     # Train on p_P
     ####################################
     net = gluon.nn.HybridSequential()
-    with net.name_scope():
-        net.add(gluon.nn.Dense(num_hidden, activation="relu"))
-        net.add(gluon.nn.Dense(num_hidden, activation="relu"))
-        net.add(gluon.nn.Dense(num_labels))
-
+    if cnn_flag:
+        with net.name_scope():
+            net.add(gluon.nn.Conv2D(channels=20, kernel_size=5, activation='relu'))
+            net.add(gluon.nn.MaxPool2D(pool_size=2, strides=2))
+            net.add(gluon.nn.Conv2D(channels=50, kernel_size=5, activation='relu'))
+            net.add(gluon.nn.MaxPool2D(pool_size=2, strides=2))
+            # The Flatten layer collapses all axis, except the first one, into one axis.
+            net.add(gluon.nn.Flatten())
+            net.add(gluon.nn.Dense(num_hidden, activation="relu"))
+            net.add(gluon.nn.Dense(num_labels))
+    else:
+        with net.name_scope():
+            net.add(gluon.nn.Dense(num_hidden, activation="relu"))
+            net.add(gluon.nn.Dense(num_hidden, activation="relu"))
+            net.add(gluon.nn.Dense(num_labels))
     net.collect_params().initialize(mx.init.Xavier(magnitude=2.24), ctx=ctx)
     softmax_cross_entropy = gluon.loss.SoftmaxCrossEntropyLoss()
     trainer = gluon.Trainer(net.collect_params(), 'sgd', {'learning_rate': .1})
@@ -341,11 +367,11 @@ def BBSE(X,y,Xtest,ctx=mx.cpu(),num_hidden=256,epochs=5):
 
     # Training
     weighted_train(net, softmax_cross_entropy, trainer, Xtrain, ytrain, Xval, yval, ctx, dfeat, epoch=epochs,
-                   weightfunc=None, data_ctx=data_ctx)
+                   weightfunc=None, data_ctx=data_ctx, cnn_flag=cnn_flag)
 
     # Prediction
-    ypred_s, ypred_s_soft = predict_all(Xval, net, ctx, dfeat)
-    ypred_t, ypred_t_soft = predict_all(Xtest, net, ctx, dfeat)
+    ypred_s, ypred_s_soft = predict_all(Xval, net, ctx, dfeat, cnn_flag=cnn_flag)
+    ypred_t, ypred_t_soft = predict_all(Xtest, net, ctx, dfeat, cnn_flag=cnn_flag)
 
     # Converting to numpy array for later convenience
     ypred_s = ypred_s.asnumpy()
@@ -356,6 +382,9 @@ def BBSE(X,y,Xtest,ctx=mx.cpu(),num_hidden=256,epochs=5):
     ####################################
     # Estimate Wt
     ####################################
-    wt = estimate_labelshift_ratio(yval, ypred_s, ypred_t, num_labels)
+    if useProb:
+        wt = estimate_labelshift_ratio(yval, ypred_s_soft, ypred_t_soft, num_labels)
+    else:
+        wt = estimate_labelshift_ratio(yval, ypred_s, ypred_t, num_labels)
 
     return w_to_beta(wt,y)

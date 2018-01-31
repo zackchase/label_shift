@@ -31,10 +31,8 @@ num_labels = 10
 results_dict = {}
 
 
-TWEAK_ONE = True # Modify only one class, rather than using dirichlet
+TWEAK_ONE = False # use knockout scheme, rather than dirichlet
 MODIFY_P = False # if set to false, we use uniform P and modify Q.
-# The following is useful only when TWEAK_ONE = True.
-KNOCK_OUT = True # If True reduce probability of one class, if False increase probability of one class,
 
 if TWEAK_ONE:
     alpha_range = [0.9, 0.7, 0.5, 0.3, 0.1]
@@ -87,10 +85,7 @@ for n in nlist:
             if MODIFY_P:
                 p_Q = [.1, .1, .1, .1, .1, .1, .1, .1, .1, .1]
                 if TWEAK_ONE:
-                    if KNOCK_OUT:
-                        p = (1-alpha)/num_labels
-                    else:
-                        p = alpha
+                    p = alpha#(1-alpha)/num_labels
                     knockout_label = 5
                     p_P = np.full(num_labels, (1. - p) / (num_labels - 1))
                     p_P[knockout_label] = p
@@ -99,10 +94,7 @@ for n in nlist:
             else:
                 p_P = [.1, .1, .1, .1, .1, .1, .1, .1, .1, .1]
                 if TWEAK_ONE:
-                    if KNOCK_OUT:
-                        p = (1-alpha)/num_labels
-                    else:
-                        p = alpha
+                    p = alpha#(1 - alpha) / num_labels
                     knockout_label = 5
                     p_Q = np.full(num_labels, (1. - p) / (num_labels - 1))
                     p_Q[knockout_label] = p
@@ -142,4 +134,4 @@ for n in nlist:
 
             ToPickle = [alpha_range, nlist, num_runs, methods_name, allresults, methods_name_fast, num_runs_slow, num_runs]
 
-            pickle.dump( ToPickle, open( "results_exp_benchmarking_knockout.p", "wb" ) )
+            pickle.dump( ToPickle, open( "results_exp_benchmarking_dirichlet.p", "wb" ) )

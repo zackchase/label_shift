@@ -20,7 +20,7 @@ def tweak_dist(X, y, num_labels, n, Py):
         np.random.multinomial(1, Py, n), axis=1)
         
     for i in range(n):
-        # sample an example from X
+        # sample an example from X with replacement
         idx = np.random.choice(indices_by_label[labels[i]])
         Xshift[i] = X[idx]
         yshift[i] = y[idx]

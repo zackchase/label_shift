@@ -34,13 +34,6 @@ sigma = 0.2 * sqrt(dd);
 else
 sigma = 0.14 * sqrt(dd);
 end
-end
-
-
-% variables: (here in the program / in (12) in the paper)
-% H is K
-% f is kappa
-%
 
 % minimize...
 'calculating H=K...'
@@ -49,7 +42,18 @@ if size(X,2) > 1E4
 else
     mean_std_x = mean(std(X));
 end
-H = rbf_dot(X,X,sigma*mean_std_x,0);
+
+sigma = sigma*mean_std_x
+
+end
+
+
+% variables: (here in the program / in (12) in the paper)
+% H is K
+% f is kappa
+%
+
+H = rbf_dot(X,X,sigma,0);
 % H=(H+H')/2; %make the matrix symmetric (it isn't symmetric before because of bad precision)
 
 %%% learn the kernel matrix of Y and the regularization parameter
@@ -129,7 +133,7 @@ J = L_inv_L * H * L_inv_L'; J = (J+J')/2;
 
 
 'calculating f=kappa...'
-R3 = rbf_dot(X,Xtst,sigma*mean_std_x,0);
+R3 = rbf_dot(X,Xtst,sigma,0);
 M= L_inv_L * (R3*ones(ntestsamples, 1));
 M=-nsamples/ntestsamples*M;
 

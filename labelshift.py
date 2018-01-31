@@ -29,14 +29,15 @@ def calculate_marginal(y,k):
     return mu/np.size(y)
 
 def calculate_marginal_probabilistic(y,k):
-    return np.mean(y,axis=1)
+    return np.mean(y,axis=0)
 
 def estimate_labelshift_ratio(ytrue_s, ypred_s, ypred_t,k):
     if ypred_s.ndim == 2: # this indicates that it is probabilistic
         C = confusion_matrix_probabilistic(ytrue_s,ypred_s,k)
+        mu_t = calculate_marginal_probabilistic(ypred_t, k)
     else:
         C = confusion_matrix(ytrue_s, ypred_s,k)
-    mu_t = calculate_marginal(ypred_t,k)
+        mu_t = calculate_marginal(ypred_t, k)
     lamb = (1/min(len(ypred_s),len(ypred_t)))
     wt = np.linalg.solve(np.dot(C.T, C)+lamb*np.eye(k), np.dot(C.T, mu_t))
     return wt

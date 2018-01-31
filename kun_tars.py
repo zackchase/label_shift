@@ -32,6 +32,12 @@ def py_betaKMM_targetshift(X, Y, Xtst, sigma='median', lambda_beta=0.1):
     # Other inputs are optional
 
     # shall we do dimension reduction on X to make it more tractable?
+    # reshape image into
+    if len(X.shape)>2:
+        dfeat = np.prod(X.shape[1:])
+        X = X.reshape((-1, dfeat))
+        Xtst = Xtst.reshape((-1,dfeat))
+
 
     median_samples = 1000
     if sigma == 'median':
@@ -63,7 +69,11 @@ def py_betaKMM_targetshift(X, Y, Xtst, sigma='median', lambda_beta=0.1):
 #  Note that the following method is only implemented for K=2. Namely, y=0 or y=1...
 
 def py_betaEM_targetshift(X, Y, Xtst):
-    # shall we do dimension reduction on X to make it more tractable?
+    if len(X.shape)>2:
+        dfeat = np.prod(X.shape[1:])
+        X = X.reshape((-1, dfeat))
+        Xtst = Xtst.reshape((-1,dfeat))
+
     y = Y.reshape((Y.size, 1))
     mX = matlab.double(X)
     mY = matlab.double(y)

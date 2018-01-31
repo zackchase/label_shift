@@ -34,7 +34,7 @@ results_dict = {}
 TWEAK_ONE = True # Modify only one class, rather than using dirichlet
 MODIFY_P = False # if set to false, we use uniform P and modify Q.
 # The following is useful only when TWEAK_ONE = True.
-KNOCK_OUT = True # If True reduce probability of one class, if False increase probability of one class,
+KNOCK_OUT = False # If True reduce probability of one class, if False increase probability of one class,
 
 if TWEAK_ONE:
     alpha_range = [0.9, 0.7, 0.5, 0.3, 0.1]
@@ -142,4 +142,4 @@ for n in nlist:
 
             ToPickle = [alpha_range, nlist, num_runs, methods_name, allresults, methods_name_fast, num_runs_slow, num_runs]
 
-            pickle.dump( ToPickle, open( "results_exp_benchmarking_knockout.p", "wb" ) )
+            pickle.dump( ToPickle, open( "results_exp_benchmarking_boostQ.p", "wb" ) )

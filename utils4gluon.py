@@ -18,12 +18,15 @@ from mxnet import nd, autograd
 #     return acc.get()[1]
 
 
-def evaluate_accuracy(data_iterator, net, ctx, dfeat):
+def evaluate_accuracy(data_iterator, net, ctx, dfeat, cnn_flag=False):
     data_iterator.reset()
     numerator = 0.
     denominator = 0.
     for i, batch in enumerate(data_iterator):
-        data = batch.data[0].as_in_context(ctx).reshape((-1, dfeat))
+        if cnn_flag:
+            data = batch.data[0].as_in_context(ctx)
+        else:
+            data = batch.data[0].as_in_context(ctx).reshape((-1, dfeat))
         label = batch.label[0].as_in_context(ctx)
         output = net(data)
         predictions = nd.argmax(output, axis=1)
@@ -32,7 +35,7 @@ def evaluate_accuracy(data_iterator, net, ctx, dfeat):
     return (numerator / denominator).asscalar()
 
 def weighted_train(net, lossfunc, trainer, Xtrain, ytrain, Xval, yval, ctx, dfeat, epoch=1, batch_size=64,
-                   weightfunc=None, weightvec=None, data_ctx=mx.cpu()):
+                   weightfunc=None, weightvec=None, data_ctx=mx.cpu(), cnn_flag=False):
     '''
 
     :param net:             Forward pass model with NDarray parameters attached.
@@ -72,7 +75,10 @@ def weighted_train(net, lossfunc, trainer, Xtrain, ytrain, Xval, yval, ctx, dfea
     for e in range(epoch):
         train_data.reset()
         for i, batch in enumerate(train_data):
-            data = batch.data[0].as_in_context(ctx).reshape((-1, dfeat))
+            if cnn_flag:
+                data = batch.data[0].as_in_context(ctx)
+            else:
+                data = batch.data[0].as_in_context(ctx).reshape((-1, dfeat))
             label = batch.label[0].as_in_context(ctx)
 
             if weightfunc is not None:
@@ -96,12 +102,12 @@ def weighted_train(net, lossfunc, trainer, Xtrain, ytrain, Xval, yval, ctx, dfea
 
         val_data.reset()
         train_data.reset()
-        val_accuracy = evaluate_accuracy(val_data, net, ctx, dfeat)
-        train_accuracy = evaluate_accuracy(train_data, net, ctx, dfeat)
+        val_accuracy = evaluate_accuracy(val_data, net, ctx, dfeat, cnn_flag=cnn_flag)
+        train_accuracy = evaluate_accuracy(train_data, net, ctx, dfeat,cnn_flag=cnn_flag)
         print("Epoch %s. Loss: %s, Train_acc %s, Validation_acc %s" %
               (e, moving_loss, train_accuracy, val_accuracy))
 
-def predict_all(X, net, ctx, dfeat, batch_size=64):
+def predict_all(X, net, ctx, dfeat, batch_size=64, cnn_flag=False):
     '''
     :param X: an ndarray containing the data. The first axis is over examples
     :param net: trained model
@@ -115,7 +121,10 @@ def predict_all(X, net, ctx, dfeat, batch_size=64):
     ypred=[]
 
     for i, batch in enumerate(data_iterator):
-        data = batch.data[0].as_in_context(ctx).reshape((-1, dfeat))
+        if cnn_flag:
+            data = batch.data[0].as_in_context(ctx)
+        else:
+            data = batch.data[0].as_in_context(ctx).reshape((-1, dfeat))
         output = net(data)
         softpredictions = nd.softmax(output, axis=1)
         predictions = nd.argmax(output, axis=1)
