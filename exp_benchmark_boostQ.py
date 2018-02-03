@@ -35,6 +35,7 @@ TWEAK_ONE = True # Modify only one class, rather than using dirichlet
 MODIFY_P = False # if set to false, we use uniform P and modify Q.
 # The following is useful only when TWEAK_ONE = True.
 KNOCK_OUT = False # If True reduce probability of one class, if False increase probability of one class,
+EXTEND = True
 
 if TWEAK_ONE:
     alpha_range = [0.9, 0.7, 0.5, 0.3, 0.1]
@@ -44,7 +45,8 @@ else:
 num_runs = 20# repeat 5 times
 num_runs_slow = 5 # number of runs for those slow ones..
 nlist = [500, 1000, 2000, 4000, 8000] # a list of n
-
+if EXTEND:
+    nlist =[16000,32000]
 cnn_flag=False # Use two-layer perceptron if this is False. otherwise use CNN
 
 allresults = {}
@@ -59,6 +61,8 @@ KMM_ts = lambda X, y, Xtest: py_betaKMM_targetshift(X, y, Xtest, sigma='median',
 methods_dict = {"unweighted": unweighted, "KMM-Tars": KMM_ts, "BBSE": ours, "BBSE-prob": ours1}
 methods_slowflag = {"unweighted": False, "KMM-Tars": True, "BBSE": False, "BBSE-prob": False}
 methods_name = ["unweighted", "BBSE","BBSE-prob","KMM-Tars"]
+if EXTEND:
+    methods_name = ["unweighted", "BBSE","BBSE-prob"]
 methods = []
 methods_slow = []
 methods_name_fast = []
@@ -141,5 +145,5 @@ for n in nlist:
             allresults[(alpha,n)].append([results,p_P,p_Q])
 
             ToPickle = [alpha_range, nlist, num_runs, methods_name, allresults, methods_name_fast, num_runs_slow, num_runs]
-
-            pickle.dump( ToPickle, open( "results_exp_benchmarking_boostQ.p", "wb" ) )
+            if EXTEND:
+                pickle.dump( ToPickle, open( "results_exp_benchmarking_boostQ_extend.p", "wb" ) )
